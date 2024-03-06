@@ -2,9 +2,9 @@
 clear; close all; clc;
 %% Establish Directories and Files
 % Data Directory
-directories = {'E:\Keegan\NM-02-25-24\queue'};
+directories = {''};
 % Paths
-addpath(genpath('C:\Users\RDCRLTGM\Desktop\git-repository\Multioffset'))
+addpath(genpath('git-repository\Multioffset'))
 %% Processing WorkFlow Controls
 % Parallel Computing Enabled
 isParallel = 1;

@@ -1,12 +1,11 @@
 %% Preprocess Sensors&Software
 clear; close all; clc;
 %% Establish Directories and Files
-%  addpath(genpath('D:\git-repository\SkiPR'))
-addpath(genpath('C:\Users\snowfield\Desktop\git-repository'))
+addpath(genpath('git-repository\Multioffset'))
 workingDirectory = pwd;
-directories = {'E:\Keegan\NM-02-25-24\raw'};
-% directories = {'E:\MCS\MCS021324\GPR\raw'};
-
+% Enter Data Directory
+directories = {''};
+% Enter Line Numbers
 Lines = {[1]};
 
 % Controls
@@ -116,7 +115,7 @@ if size(delta,2)==3 % .gp2 file loaded
 else % .gps file loaded
     warning('GPS Antenna Position Unknown. Assuming 0,0,0.')
     Geometry(ii).latency = zeros(1,nChan(ii));
-    Geometry(ii).gps = [0,0,0];
+    Geometry(ii).gps = [0,0,0]; % Enter GPS Antenna Position
     % Calculate Delta
     Geometry(ii).delta = Geometry(ii).gps ...
         - [Geometry(ii).midpointx(:),Geometry(ii).midpointy(:),zeros(nChan(ii),1)];
@@ -201,7 +200,7 @@ if isFID
 end
 %% Remove Bad Channels
 if isKillChan
-    badChan = [1,2,3]; %IDBRBO011521
+    badChan = []; % Enter Channel Numbers
     badIx = ismember(MxTrhd{ii}(3,:),badChan);
     MxTrhd{ii}(:,badIx) = [];
     MxData{ii}(:,badIx) = [];

@@ -1,0 +1,63 @@
+# Multioffset GPR Processing Workflow
+This repository shares image processing code and velocity analysis tools for the Sensors & Software SPIDAR system.
+
+## Preprocessing
+.GPZ files must intially be converted to the legacy format. Do this by exporting as "Line Data" within EKKO Project Software.
+
+Legacy file types: .dt1 (binary file contains radargram), .hd (txt file contains relevant header information of data acquisition), & .GP2 (txt file will NMEA strings)
+
+Place these files within a directory of your choice.
+
+Run `preproSS.m` -- Identify the data directory(ies) stroing legacy files within `directories = {''};` and input the line numbers of the files to be preprecessed `Lines = {[]};`
+
+`preproSS.m` will output .nc files with georeferenced traces in a multiplexed format.
+
+### .nc format
+The .nc file contains the trace header (meta data) and the raw, multiplexed GPR traces.\
+Coordinate Projection: UTM\
+Elevation: m (WGS1984 ellipsoid model)\
+The initial 40 rows of this array is the trace header. Each row is described.
+1. The Trace Number
+2. The Shot Number
+3. The Channel Number
+4. The Horizontal Antenna Separation (offset) of the GPR channel
+5. Channel midpoint X 
+6. Channel midpoint Y
+7. Channel Transmitter X Coordinate
+8. Channel Transmitter Y Coordinate
+9. Channel Receiver X Coordinate
+10. Channel Receiver Y Coordinate
+11. The Nominal Frequency of the GPR Antennas [MHz]
+12. The Time Sample Interval in nanoseconds [10^-9s]: This information with row 13 configures the travel-time axis (e.g. [0:row12:(row13-1).*row12 = TWT axis)
+13. Number of Samples per Trace: This information is used to configure the travel-time axis
+14. Date and Time in unix time
+15. X coordinate of shot gather bin center [m]
+16. Y coordinate of shot gather bin center [m]	
+17. Z coordinate of shot gather bin center [masl EGM96]
+18. Distance along traverse of shot gather bin center [m]
+19. Speed of the Radar Array [m/s]
+20. Heading of the shot gather bin center [degrees]
+21. Slope of Snow surface [degrees]
+22. X coordinate of GPR antenna midpoint [m]
+23. Y coordinate of GPR antenna midpoint [m]
+24. Z coordinate of GPR antenna midpoint [m]
+25. Distance along traverse route of GPR antenna midpoint [m]
+26. Heading of GPR antenna midpoint [degrees]
+27. Longitude of shot gather bin center [DD]
+28. Latitude  of shot gather bin center [DD]
+29.	Elevation of shot gather bin center [mae WGS1984]
+30. Longitude of GPR antenna midpoint [DD]
+31. Latitude  of GPR antenna midpoint [DD]
+32. Elevation of GPR antenna midpoint [mae WGS1984]
+33.	Geoid N [m EGM96]
+34. UTM Zone (Positive Norhern Hemisphere, Negative Southern Hemisphere)
+35. GPS Antenna X Position
+36. GPS Antenna Y Position
+37. GPS Antenna Z Position
+38. Dead Reckon X
+39. Dead Reckon Y
+40. Dead Reckon Z
+ 
+The unprocessed, multiplexed GPR traces are appended beneath row 40 of the trace header.
+
+The variable ID 'DATA' will access the multiplexed trace header and data file using a call to a netcdf reader in your choice of programming language.

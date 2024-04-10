@@ -1,12 +1,12 @@
 %% Preprocess Sensors&Software
 clear; close all; clc;
 %% Establish Directories and Files
-addpath(genpath('git-repository\Multioffset'))
+addpath(genpath('C:\Users\RDCRLTGM\Desktop\git-repository\Multioffset'))
 workingDirectory = pwd;
 % Enter Data Directory
-directories = {''};
+directories = {'E:\Keegan\NM-02-25-24\raw'};
 % Enter Line Numbers
-Lines = {[1]};
+Lines = {[3]};
 
 % Controls
 isWrite = 1; % Write netCDF file
@@ -155,7 +155,7 @@ end
 % Clear Undefined Loop Variables
 clear('mintrc','nsamp','ntrc','delta','latency')
 %% GeoReference
-velocityThreshold = .25;
+velocityThreshold = 1;
 calcVelocityHeading = 1;
 InterpolateTrhd = 1;
 dx = 0.1;

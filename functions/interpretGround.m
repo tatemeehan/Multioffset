@@ -44,6 +44,7 @@ else
 end
 % Store Picks
 picks = horzcat(pickT{:});
+nHorizon = size(pickT,2);
 groundTWT = (picks'-laymanDecon).*GPR.D.dt{ii};
 % LQ Filter
 % LocalQuantile Filter
@@ -52,7 +53,7 @@ Y = GPR.Geolocation.Y{ii};
 Distance = GPR.Geolocation.Distance{ii};
 r = 5;%.5; % Bin Radius (m)
 q = [0.05,0.95]; % Quantile Threshold
-for kk = 1:nChan
+for kk = 1:nChan.*nHorizon
 [filtPicks, ~] = lqfilter(groundTWT(kk,:),X,Y,r,q);
 % Smooth Picks
 smoothr = 2.5;%0.5;%2;
@@ -60,5 +61,6 @@ smoothr = 2.5;%0.5;%2;
 groundTWT(kk,:) = smoothFiltPicks;
 end
 GPR.D.groundTWT{ii} = groundTWT;
+GPR.D.nHorizon{ii} = nHorizon;
 end
 end

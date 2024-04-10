@@ -2,20 +2,21 @@
 clear; close all; clc;
 %% Establish Directories and Files
 % Data Directory
-directories = {''};
+directories = {'E:\Keegan\NM-02-25-24\queue'};
 % Paths
-addpath(genpath('git-repository\Multioffset'))
+addpath(genpath('C:\Users\RDCRLTGM\Desktop\git-repository\Multioffset'))
 %% Processing WorkFlow Controls
 % Parallel Computing Enabled
 isParallel = 1;
 % Read Data
 isTrimTWT = 0;          % Truncate Recorded Data
 isReduceData = 0;       % Thin Traces
+isEditPicks = 1;        % Edit Picks
 
 % Write SWE Data
-isWriteCSVhva = 1; % .csv output
-isSaveMat = 1;
-isSavePlots = 1;
+isWriteCSVhva = 0; % .csv output
+isSaveMat = 0;
+isSavePlots = 0;
 % Load Processed Data
 isLoadMat = 0;
 
@@ -119,6 +120,12 @@ if isInterpretGround
     display('Interpret the Ground Horizon')
     [GPR] = interpretGround(GPR);
 end
+%% QC Picks
+if isEditPicks
+    display('QC Picks')
+    isLoadPicks = 1;
+    [GPR] = pickEditorMx(GPR,isLoadPicks);
+end
 %% Horizon Velocity Analysis
 isHVA = 1;
 if isHVA
@@ -185,6 +192,8 @@ isResampled = abs((GPR.Geolocation.Distance{1}(2)-GPR.Geolocation.Distance{1}(1)
 if length(GPR.Geolocation.Distance{1})<1000
     isResampled = 0; % use pcolor for smaller transects
 end
+titstr = strsplit(GPR.MD.fileNames,'.');
+projstr = strsplit(GPR.MD.Dir(ii).folder,'\');
 % Calculate RMS Distance
 distRMS = (sqrt((GPR.Geolocation.X{1}(1:end-1)-GPR.Geolocation.X{1}(2:end)).^2+(GPR.Geolocation.Y{1}(1:end-1)-GPR.Geolocation.Y{1}(2:end)).^2));
 % Calculate RMS Position
@@ -233,7 +242,7 @@ display('Displaying Figures')
     shading interp;axis ij; colormap(bone);caxis([quantile(GPR.D.Radar{1}{3}(:),[0.005,0.995])]);
     end
     hold on; plot(GPR.Geolocation.Distance{1},GPR.D.surfaceTWT{1}(2,:),'m','linewidth',2)
-    plot(GPR.Geolocation.Distance{1},GPR.D.groundTWT{1}(1,:),'m','linewidth',2);
+    plot(GPR.Geolocation.Distance{1},GPR.D.groundTWT{1}(3,:),'m','linewidth',2);
     xlabel('Distance (m)'); ylabel('Travel-time (ns)');title(['Offset ',num2str(round(GPR.Geometry.offset{1}(3),2)),' (m)'])
     set(gca,'fontsize',12,'fontweight','bold','fontname','serif');
     % make sup title
@@ -250,8 +259,7 @@ display('Displaying Figures')
 
 is2Dmap = 1; % 2D Map View
 is3Dmap = 0; % X,Y,Z, map view
-titstr = strsplit(GPR.MD.fileNames,'.');
-projstr = strsplit(GPR.MD.Dir(ii).folder,'\');
+
 figure();
 if is3Dmap
 hmap = scatter3(GPR.Geolocation.X{1}./1000,GPR.Geolocation.Y{1}./1000,GPR.Geolocation.Z{1},5,GPR.D.groundT0{ii}-GPR.D.surfaceTWT{ii}(1,:),'filled');

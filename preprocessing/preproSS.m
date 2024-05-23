@@ -1,13 +1,11 @@
 %% Preprocess Sensors&Software
 clear; close all; clc;
 %% Establish Directories and Files
-addpath(genpath('C:\Users\RDCRLTGM\Desktop\git-repository\Multioffset'))
 workingDirectory = pwd;
 % Enter Data Directory
-directories = {'E:\Keegan\NM-02-25-24\raw'};
+directories = {'D:\alicia\GPR Data - Share w T8'};
 % Enter Line Numbers
-Lines = {[3]};
-
+Lines = {[1]};
 % Controls
 isWrite = 1; % Write netCDF file
 isFID = 1;   % Create Unique Trace ID for each file
@@ -113,40 +111,36 @@ if size(delta,2)==3 % .gp2 file loaded
     Geometry(ii).delta = Geometry(ii).gps ...
         - [Geometry(ii).midpointx(:),Geometry(ii).midpointy(:),zeros(nChan(ii),1)];
 else % .gps file loaded
-    warning('GPS Antenna Position Unknown. Assuming 0,0,0.')
     Geometry(ii).latency = zeros(1,nChan(ii));
     Geometry(ii).gps = [0,0,0]; % Enter GPS Antenna Position
     % Calculate Delta
     Geometry(ii).delta = Geometry(ii).gps ...
         - [Geometry(ii).midpointx(:),Geometry(ii).midpointy(:),zeros(nChan(ii),1)];
+    warning(['GPS Antenna Position Unknown. Assuming ', num2str(Geometry(ii).gps)])
 end
 
 for jj = 1:length(fileIx)
     trcnoBad(jj) = any(diff(trhd{jj,ii}(1,:))~=1);
     trcNo(jj) = length((trhd{jj,ii}(1,:)));
+    badNos{jj} = find(diff(trhd{jj,ii}(1,:))~=1)+1;
 end
-if all(trcnoBad)
-    warning('Trace Numbers need Repair.')
-    keyboard
+if any(trcnoBad)
+    warning('Trace Numbers Automatically Repaired.')
+    for jj = 1:length(fileIx)
+        % Remove Corrupt Traces
+        trhd{jj,ii}(:,badNos{jj}) = [];
+        dat{jj,ii}(:,badNos{jj}) = [];
+        % ntraces
+        ntrc(jj) = size(trhd{jj,ii},2);
+        % Pull out Bad Traces & Create New Trace Numbers
+        trhd{jj,ii}(1,:) = 1:length(trhd{jj,ii}(1,:));
+    end
+        mintrc = min(ntrc);
 end
-% Maximum length of Good Trace Numbers
 
 for jj = 1:length(fileIx)
     % Add Channel Number to Header
     trhd{jj,ii}(23,:) = jj;
-    % Fix Broken Trace Numbers
-    if trcnoBad(jj)
-        % Find Good Trace Numbers to Duplicate
-        trcnoIx = find(~trcnoBad & trcNo >= trcNo(jj),1);
-        if isempty(trcnoIx)
-                warning('Trace Numbers need Repair.')
-                keyboard
-        end
-        trhd{jj,ii}(1,:) = trhd{trcnoIx,ii}(1,1:length(trhd{jj,ii}(1,:)));
-    end
-end
-for jj = 1:length(fileIx)
-
     % Multiplex The Files :eyeroll
     MxTrhd{ii}(:,jj:nChan(ii):mintrc.*nChan(ii)) = trhd{jj,ii}(:,1:mintrc);
     MxData{ii}(:,jj:nChan(ii):mintrc.*nChan(ii)) = dat{jj,ii}(:,1:mintrc);

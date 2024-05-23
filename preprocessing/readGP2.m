@@ -81,7 +81,7 @@ isRMC = 0;
 isGSA = 0;
 for kk = 1:m
     tmprawGPS = erase(rawGPS{kk},'"');
-    gpsCell = strsplit(tmprawGPS,',');
+    gpsCell = strsplit(tmprawGPS,',','CollapseDelimiters', false);
     % Reconstruct Trace Number
     if iterNMEA(kk)
         trc1 = str2num(gpsCell{1});

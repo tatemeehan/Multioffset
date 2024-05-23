@@ -1,7 +1,7 @@
-function [GPS,delta,latency] = readGPS(filename)
+function [GPS,delta,latency] = readGPS(filename, OGdate)
 %readGP2 extracts GPS data from NMEA string embedded in S&S .GP2 files.
 %   Input :
-%       filename = /directory/filename.GP2 - the fullfile sting 
+%       filename = /directory/filename.GPS - the fullfile sting 
 %   Output:
 %       GPS = [trcno,unixTime,longitude,latitude,elevation,geiodN,heading,speed,pdop,hdop,vdop];
 %           trcno - Trace Number
@@ -26,7 +26,8 @@ function [GPS,delta,latency] = readGPS(filename)
 % GPGSA
 
 % Tate Meehan 12/21/2020
-
+% Read Date
+OGdate = strsplit(OGdate,'-');
 % Open the .GPS file
 fid=fopen(filename);
 % Read the whole lines of .GP2 file into a cell array
@@ -39,26 +40,83 @@ rawGPS = rawGPS{1};
 rmvix = ~cellfun(@isempty,rawGPS);
 rawGPS = rawGPS(rmvix);
 % Get Indicies of NMEA Strings
+nmeaStrings = ["$GPGGA","$GPVTG","$GPZDA","$GPRMC","$GPGSA"];
+whichNMEA = zeros(length(rawGPS),numel(nmeaStrings));
 for kk = 1:length(rawGPS)
     ix(kk) = strcmp(rawGPS{kk}(1),'$');
+    GSAix(kk) = strcmp(rawGPS{kk}(1:6),'$GPGSA');
+    % Supported NMEA Strings "$GPGGA","$GPVTG","$GPZDA","$GPRMC","$GPGSA"
+    nmeas =(strcmp(rawGPS{kk}(1:6),[nmeaStrings]));
+    rmvNMEA(kk) = ~any(nmeas);
+    % Create Logical Matrix of NMEA
+    whichNMEA(kk,:) = nmeas;
 end
-% Find NMEA data and trace header
-NMEAix = find(ix);trcix = find(~ix); 
-% Determine Number of Unique NMEA strings
-nix = find(ix==0,2); nNMEA = sum(ix(nix(1):nix(2)));
-% % Extract Relative Antenna Position (delta perturbations in deadReckon)
-% tmpdelta = strsplit(rawGPS{5},'=');
-% delta = str2num(tmpdelta{2});
-delta = 0;
-% % Extract GPS Latency (Currently Unused)
-% tmplatency = strsplit(rawGPS{6},'=');
-% latency = str2num(tmplatency{2});
-latency = 0;
-% Remove Unwanted Header Rows
+% Trace Number Rows
+trcix = find(~ix); 
 trcstr = rawGPS(trcix);
-rawGPS(trcix) = [];
 m = length(trcix);
 trcno = zeros(m,1);
+% Remove nonRecognized NMEAs
+rawGPS(rmvNMEA,:) = [];
+whichNMEA(rmvNMEA,:) = [];
+% determine number of unique NMEAs & Which
+NMEAs = nmeaStrings(sum(whichNMEA,1)>0);
+nNMEA = numel(NMEAs);
+% Sometimes $GPGSA is not recorded at 1 Hz we need to infill this
+nmea1 = find((whichNMEA(1,:)));
+nmea1Ix = find(whichNMEA(:,nmea1));
+nnmea1 = numel(nmea1Ix);
+if median(diff(nmea1Ix))~=nNMEA
+    %%% Assumes $GPGSA is the only String needing infilled. %%%
+    synthGPS = cell(nnmea1.*nNMEA,1);
+    if any(strcmp(NMEAs,"$GPGGA"))
+        gpggaIx = find(whichNMEA(:,1));
+        gpgga1Ix = gpggaIx(1);
+        synthGPGGAix = gpgga1Ix:nNMEA:nnmea1.*nNMEA;
+        for ftp = 1:nnmea1
+            synthGPS{synthGPGGAix(ftp)} = rawGPS{gpggaIx(ftp)};
+        end
+    end
+    if any(strcmp(NMEAs,"$GPVTG"))
+        gpvtgIx = find(whichNMEA(:,2));
+        gpvtg1Ix = gpvtgIx(1);
+        synthGPVTGix = gpvtg1Ix:nNMEA:nnmea1.*nNMEA;
+        for ftp = 1:nnmea1
+        synthGPS{synthGPVTGix(ftp)} = rawGPS{gpvtgIx(ftp)};
+        end
+    end
+    if any(strcmp(NMEAs,"$GPZDA"))
+        gpzdaIx = find(whichNMEA(:,3));
+        gpzda1Ix = gpzdaIx(1);
+        synthGPZDAix = gpzda1Ix:nNMEA:nnmea1.*nNMEA;
+        for ftp = 1:nnmea1
+        synthGPS{synthGPZDAix(ftp)} = rawGPS{gpzdaIx(ftp)};
+        end
+    end
+    if any(strcmp(NMEAs,"$GPRMC"))
+        gprmcIx = find(whichNMEA(:,4));
+        gprmc1Ix = gprmcIx(1);
+        synthGPRMCix = gprmc1Ix:nNMEA:nnmea1.*nNMEA;
+        for ftp = 1:nnmea1
+        synthGPS{synthGPRMCix(ftp)} = rawGPS{gprmcIx(ftp)};
+        end
+    end
+    if any(strcmp(NMEAs,"$GPGSA"))
+        gpgsaIx = find(whichNMEA(:,5));
+        gpgsa1Ix = gpgsaIx(1);
+        synthGPGSAix = gpgsa1Ix:nNMEA:nnmea1.*nNMEA;
+        for ftp = 1:nnmea1
+            [~,minIx] = min(abs(gpgsaIx - synthGPGSAix(ftp)));
+            % Nearest Neighbor Infill
+            synthGPS{synthGPGSAix(ftp)} = rawGPS{gpgsaIx(minIx)};
+        end
+    end
+    rawGPS = synthGPS;
+    clear('synthGPS');
+end
+
+delta = [0,0,0];
+latency = [0,0,0];
 ix = 0;
 % Initialize String Condiditons
 isGGA = 0;
@@ -67,31 +125,22 @@ isVTG = 0;
 isRMC = 0;
 isGSA = 0;
 for kk = 1:m
-%     if kk == 2074
-%         keyboard
-%     end
-%     if n <= nNMEA
     % Extract Trace Number
     tmptrcstr = strsplit(trcstr{kk});
     trcno(kk) = str2num(tmptrcstr{2}(2:end));
-%     if kk > 1
-%        dtrcno = trcno(kk)-trcno(kk-1);
-%        if dtrcno > 0
-           iter = kk;%iter+1;
-           isGGA = 0;
-           isZDA = 0;
-           isVTG = 0;
-           isRMC = 0;
-           isGSA = 0;
-%        end
-%     end
+    iter = kk;
+    isGGA = 0;
+    isZDA = 0;
+    isVTG = 0;
+    isRMC = 0;
+    isGSA = 0;
 for jj = 1:nNMEA
     ix = ix+1;
     % Extract GPS Data
     tmprawGPS = rawGPS{ix};
-    % Add Dummy Cols to mimi gp2
+    % Add Dummy Cols to mimic .gp2
     tmprawGPS = ['1,1,1,1,',tmprawGPS];
-    gpsCell = strsplit(tmprawGPS,',');
+    gpsCell = strsplit(tmprawGPS,',','CollapseDelimiters', false);
     % GPGGA
     % Lon, Lat, Elevation, Time
     if strcmp(gpsCell{5},'$GPGGA')
@@ -123,16 +172,26 @@ for jj = 1:nNMEA
             z = str2double(gpsCell{14});
             N = str2double(gpsCell{16});
             if ~isZDA
-            % Time        % Time of Day
+            % Time of Day
             t = gpsCell{6};
             H = str2double(t(1:2));
             M = str2double(t(3:4));
             S = str2double(t(5:end));
             s = H.*3600+M.*60+S; % Seconds of Day
-            % Check if Next Day
-            six = find(s<s(1));
-            s(six) = s(six)+86400;
-            clear('t','H','M','S');
+            % Initial Second of Day
+                if iter == 1
+                    s1 = s;
+                end
+                d = str2double(OGdate{3});
+                % Check if Next Day
+                if s < s1
+                    d = d+1;
+                end
+                mnth = month(datetime(OGdate{2},'InputFormat','MM'));
+                y = str2double(OGdate{1});
+                dt = datetime([y mnth d H M S]);
+                % Convert to unixTime
+                unixTime(iter) = posixtime(dt); 
             end
         else
             lon = NaN;
@@ -196,7 +255,7 @@ for jj = 1:nNMEA
                 if (gpsCell{11}) == 'W'
                     lon = -lon;
                 end
-                % Latittude
+                % Latitude
                 % Get the Latitude DDMM.MMMMM
                 lat = str2double(gpsCell{8}(1:2));
                 latm = str2double(gpsCell{8}(3:end));
@@ -313,15 +372,15 @@ if exist('speed','var')
 end
 if exist('pdop','var')
     % Put pdop
-%     GPS(:,9) = pdop(:);
+    GPS(:,9) = pdop(:);
 end
 if exist('hdop','var')
     % Put hdop
-%     GPS(:,10) = hdop(:);
+    GPS(:,10) = hdop(:);
 end
 if exist('vdop','var')
     % Put vdop
-%     GPS(:,11) = vdop(:);
+    GPS(:,11) = vdop(:);
 end
 
 % End of Function

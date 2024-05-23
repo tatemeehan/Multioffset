@@ -77,7 +77,12 @@ dx     = str2double( C{7}{1,2} ); % [m] sample interval in space
 xArray = xstart : dx : xstop; % [m] position vector
 
 f0 = round( str2double( C{9}{1,2} ) ); % [MHz] frequency 
-datatype = C{18}{1,2}; % Data Byte Type
+% DATA TYPE field D.N.E. in O.G. DVL .hd
+try
+    datatype = C{18}{1,2}; % Data Byte Type
+catch
+    datatype = 'I*2';
+end
 
 %--------------------------------------------------------------------------
 % Load the DATA file
@@ -130,7 +135,7 @@ if ~isGPS && ~isGP2
 %     error('GPS data is corrupt.')
 else
     if isGPS % Read .GPS file
-        [GPS, delta, latency] = readGPS([filename,'.gps']);
+        [GPS, delta, latency] = readGPS([filename,'.gps'],date);
     end
     if isGP2 % Read .GP2 file
         [GPS, delta, latency] = readGP2([filename,'.gp2'],date);

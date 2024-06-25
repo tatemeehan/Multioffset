@@ -77,11 +77,20 @@ dx     = str2double( C{7}{1,2} ); % [m] sample interval in space
 xArray = xstart : dx : xstop; % [m] position vector
 
 f0 = round( str2double( C{9}{1,2} ) ); % [MHz] frequency 
-% DATA TYPE field D.N.E. in O.G. DVL .hd
-try
-    datatype = C{18}{1,2}; % Data Byte Type
-catch
-    datatype = 'I*2';
+
+if strcmp(C{15}{1}(1:9),'ELEVATION')
+    % DATA TYPE field D.N.E. in O.G. DVL .hd
+    try % GPS fix
+        datatype = C{18}{1,2}; % Data Byte Type
+    catch
+        datatype = 'I*2';
+    end
+else
+    try % No GPS
+        datatype = C{16}{1,2}; % Data Byte Type
+    catch
+        datatype = 'I*2';
+    end
 end
 
 %--------------------------------------------------------------------------

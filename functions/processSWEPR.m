@@ -65,27 +65,28 @@ for ii = 1 : GPR.MD.nFiles
     
     % Allocation Here
     if ii == 1
-        Radar = cell(GPR.Geometry.nChan{ii},1); traceIx = cell(GPR.Geometry.nChan{ii},GPR.MD.nFiles);
+        Radar = cell(GPR.Geometry.nChan{ii},1,GPR.MD.nFiles); traceIx = cell(GPR.Geometry.nChan{ii},GPR.MD.nFiles);
     end
+    TimeAxis = cell(GPR.Geometry.nChan{ii},1,1); traceIx = cell(GPR.Geometry.nChan{ii},GPR.MD.nFiles);
     
     for jj = 1:GPR.Geometry.nChan{ii}
         % DeMux Sequential Data
         % GPS DeadReckoning completed in preProcessing
-        [Radar{jj},~,traceIx{jj,ii},~] = deMuxNSIDC(GPR.D.MxRadar{ii},GPR.D.trhd{ii},GPR.Geometry.Chan{ii}(jj));
+        [Radar{jj,ii},~,traceIx{jj,ii},~] = deMuxNSIDC(GPR.D.MxRadar{ii},GPR.D.trhd{ii},GPR.Geometry.Chan{ii}(jj));
     end
         
     % parfor (jj =  1:GPR.Geometry.nChan{ii}, nWorkers)
     for jj = 1:GPR.Geometry.nChan{ii}
         % Reduce Data Volume
         if isReduceData
-            Radar{jj} = Radar{jj}(:,1:rmNtrc:end);
+            Radar{jj,ii} = Radar{jj,ii}(:,1:rmNtrc:end);
             traceIx{jj,ii} = traceIx{jj,ii}(1:rmNtrc:end);
         end
         
         % Process Common Offset Channels
 
 %         if ~ismember(jj,GPR.Geometry.badChan) % Hack for Bad Chans
-        [Radar{jj}, TimeAxis{jj},t0(jj)] = processCommonOffset(Radar{jj}, ...
+        [Radar{jj,ii}, TimeAxis{jj},t0(jj)] = processCommonOffset(Radar{jj,ii}, ...
             f0, dt, TWT, offset(jj), GPR.Geolocation.Distance{ii}, dx, GPR.Geometry.Chan{ii}(jj) );
 %         else
 %             TimeAxis{jj} = TWT; t0(jj) = 0;
@@ -111,12 +112,12 @@ for ii = 1 : GPR.MD.nFiles
     TimeAxis = [0:dt:(dt.*(minIx-1))]';
     % Trim Channels to Consistent Travel Time Axis
     for jj = 1:GPR.Geometry.nChan{ii}
-        Radar{jj} = Radar{jj}(1:minIx,:);
+        Radar{jj,ii} = Radar{jj,ii}(1:minIx,:);
     end
     % Write to Out Structure
     GPR.D.TimeAxis{ii} = TimeAxis;
     GPR.D.t0{ii} = t0;
-    GPR.D.Radar{ii} = Radar; 
+    GPR.D.Radar{ii} = {Radar{:,ii}}; 
 end
 end
 

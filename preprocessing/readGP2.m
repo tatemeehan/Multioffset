@@ -50,10 +50,12 @@ for kk = 1:m
     tmp1 = strsplit(rawGPS{kk},'"');
     tmp2 = strsplit(tmp1{2},',');
     NMEA(kk,:) = tmp2{1};
-    if kk == 1
+    if any(strcmp(NMEA(kk,:),["$GPGGA","$GPVTG","$GPZDA","$GPRMC","$GPGSA"])) && ~exist("NMEA1","var")
         NMEA1 = NMEA(kk,:);
     end
+    if exist("NMEA1","var")
     iterNMEA(kk) = strcmp(NMEA(kk,:),NMEA1);
+    end
     rmvNMEA(kk) = ~any(strcmp(NMEA(kk,:),["$GPGGA","$GPVTG","$GPZDA","$GPRMC","$GPGSA"]));
 end
 % Remove Undigestible NMEA Strings
@@ -107,7 +109,7 @@ for kk = 1:m
     if strcmp(gpsCell{5},'$GPGGA')
         isGGA = 1;
 %         isGPS = str2num(gpsCell{6})~=0; % GPS fix
-        isGPS = length(gpsCell)>10; % GPS fix
+        isGPS = ~isempty(gpsCell{8}); % (str2num(gpsCell{8}) == 1 | str2num(gpsCell{8}) == 2) |%length(gpsCell)>10; % GPS fix
         if isGPS
             % Longitude
             lon = str2num(gpsCell{9}(1:3));

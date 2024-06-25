@@ -6,7 +6,7 @@ for ii = 1 : GPR.MD.nFiles
     % Multiplexed Channel Record
 %     filename = GPR.MD.fileNames(ii).name;
 %     filename = GPR.MD.Dir.name;
-    filename = GPR.MD.fileNames;
+    filename = GPR.MD.fileNames{ii};
     filepath = fullfile(GPR.MD.dataDir,filename);
     % Read netCDF data file
     disp(' ')

@@ -1,8 +1,8 @@
 %% Multi-offset GPR Snow Analysis
-clear; close all; clc;
+clear; %close all; clc;
 %% Establish Directories and Files
 % Data Directory
-directories = {'E:\Keegan\NM-02-25-24\queue'};
+directories = {'E:\JIF24\JIF_MO\C18 _2024\raw\Lineset'};
 % Paths
 addpath(genpath('C:\Users\RDCRLTGM\Desktop\git-repository\Multioffset'))
 %% Processing WorkFlow Controls
@@ -11,7 +11,7 @@ isParallel = 1;
 % Read Data
 isTrimTWT = 0;          % Truncate Recorded Data
 isReduceData = 0;       % Thin Traces
-isEditPicks = 1;        % Edit Picks
+isEditPicks = 0;        % Edit Picks
 
 % Write SWE Data
 isWriteCSVhva = 0; % .csv output
@@ -41,13 +41,17 @@ if ~isLoadMat
 if isempty(GPR.MD.Dir)
     warning("Data Queue is Empty!")
 end
-for ii = 1:length(GPR.MD.Dir)
+GPR.MD.nFiles = numel(GPR.MD.Dir); % Number of Files 
+for ff = 1:length(GPR.MD.Dir)
 GPR.MD.dataDir = directories{hh};
 GPR.MD.workDir = pwd;
-GPR.MD.fileNames = GPR.MD.Dir(ii).name;
-GPR.MD.lineNo = ii;% Array of data "LINE" numbers
-GPR.MD.nFiles = 1; % Number of Files (Only handles one at a time)
-
+% GPR.MD.fileNames = GPR.MD.Dir(ii).name;
+% GPR.MD.lineNo = ii;% Array of data "LINE" numbers
+% GPR.MD.nFiles = 1; % Number of Files (Only handles one at a time)
+GPR.MD.fileNames{ff} = GPR.MD.Dir(ff).name;
+GPR.MD.lineNo{ff} = str2num(GPR.MD.fileNames{ff}(5));% Array of data "LINE" numbers
+end
+for ff = 1:length(GPR.MD.Dir)
 %% Control Parallelization
 if isParallel
     % Wake Parallel Computing
@@ -115,7 +119,7 @@ if isAutoPickGround
         [GPR] = autoPickGround3(GPR,isQuickLook);
 end
 %% Interpret Ground
-isInterpretGround = 1;
+isInterpretGround = 0;
 if isInterpretGround
     display('Interpret the Ground Horizon')
     [GPR] = interpretGround(GPR);
@@ -127,7 +131,7 @@ if isEditPicks
     [GPR] = pickEditorMx(GPR,isLoadPicks);
 end
 %% Horizon Velocity Analysis
-isHVA = 1;
+isHVA = 0;
 if isHVA
     display('Horizon Velocity Analysis')
 [GPR] = HVA(GPR);
@@ -147,7 +151,7 @@ end
 if isSaveMat
     display('Writing .mat File')
 
-    matname = strsplit(GPR.MD.Dir(ii).folder,'\');
+    matname = strsplit(GPR.MD.Dir(ff).folder,'\');
     linename = strsplit(GPR.MD.fileNames,'.');
     linename = regexp(linename{1},'\d*','Match');
     matname = [matname{length(matname)-1},'-',linename{1}];
@@ -170,7 +174,7 @@ T.Properties.VariableNames{'Var4'} = 'Depth';
 T.Properties.VariableNames{'Var5'} = 'Density';
 T.Properties.VariableNames{'Var6'} = 'Porosity';
 T.Properties.VariableNames{'Var7'} = 'SWE';
-csvname = strsplit(GPR.MD.Dir(ii).folder,'\');
+csvname = strsplit(GPR.MD.Dir(ff).folder,'\');
 linename = strsplit(GPR.MD.fileNames,'.');
 linename = regexp(linename{1},'\d*','Match');
 csvname = [csvname{length(csvname)-1},'-',linename{1}];
@@ -193,7 +197,7 @@ if length(GPR.Geolocation.Distance{1})<1000
     isResampled = 0; % use pcolor for smaller transects
 end
 titstr = strsplit(GPR.MD.fileNames,'.');
-projstr = strsplit(GPR.MD.Dir(ii).folder,'\');
+projstr = strsplit(GPR.MD.Dir(ff).folder,'\');
 % Calculate RMS Distance
 distRMS = (sqrt((GPR.Geolocation.X{1}(1:end-1)-GPR.Geolocation.X{1}(2:end)).^2+(GPR.Geolocation.Y{1}(1:end-1)-GPR.Geolocation.Y{1}(2:end)).^2));
 % Calculate RMS Position
@@ -262,10 +266,10 @@ is3Dmap = 0; % X,Y,Z, map view
 
 figure();
 if is3Dmap
-hmap = scatter3(GPR.Geolocation.X{1}./1000,GPR.Geolocation.Y{1}./1000,GPR.Geolocation.Z{1},5,GPR.D.groundT0{ii}-GPR.D.surfaceTWT{ii}(1,:),'filled');
+hmap = scatter3(GPR.Geolocation.X{1}./1000,GPR.Geolocation.Y{1}./1000,GPR.Geolocation.Z{1},5,GPR.D.groundT0{ff}-GPR.D.surfaceTWT{ff}(1,:),'filled');
 end
 if is2Dmap
-hmap = scatter(GPR.Geolocation.X{1}./1000,GPR.Geolocation.Y{1}./1000,5,GPR.D.groundT0{ii}-GPR.D.surfaceTWT{ii}(1,:),'filled');
+hmap = scatter(GPR.Geolocation.X{1}./1000,GPR.Geolocation.Y{1}./1000,5,GPR.D.groundT0{ff}-GPR.D.surfaceTWT{ff}(1,:),'filled');
 end
 title([projstr{end-1},' ',titstr{1}])
 xlabel('Easting (km)'); ylabel('Northing (km)');colormap(bone);hc = colorbar;
@@ -292,9 +296,9 @@ if isHVA
 load('yetBlack.txt')
 % Density
 figure();
-hsnow = scatter(GPR.Geolocation.X{ii}./1000,GPR.Geolocation.Y{ii}./1000,5,GPR.Snow.Density{ii});colormap(yetBlack)
+hsnow = scatter(GPR.Geolocation.X{ff}./1000,GPR.Geolocation.Y{ff}./1000,5,GPR.Snow.Density{ff});colormap(yetBlack)
 colorbar;
-caxis([quantile(GPR.Snow.Density{ii},[0.05,0.95])])
+caxis([quantile(GPR.Snow.Density{ff},[0.05,0.95])])
 daspect([1,1,1])
 title('Density (kg/m^3)')
 xlabel('Easting (km)')
@@ -313,9 +317,9 @@ ytickformat('%.2f')
     end
 % Porosity
 figure();
-hsnow = scatter(GPR.Geolocation.X{ii}./1000,GPR.Geolocation.Y{ii}./1000,5,GPR.Snow.Porosity{ii});colormap(yetBlack)
+hsnow = scatter(GPR.Geolocation.X{ff}./1000,GPR.Geolocation.Y{ff}./1000,5,GPR.Snow.Porosity{ff});colormap(yetBlack)
 colorbar;
-caxis([quantile(GPR.Snow.Porosity{ii},[0.05,0.95])])
+caxis([quantile(GPR.Snow.Porosity{ff},[0.05,0.95])])
 daspect([1,1,1])
 hold on;grid on; grid minor;
 title('Porosity')
@@ -334,9 +338,9 @@ ytickformat('%.2f')
     end
 
 % Depth
-figure();scatter(GPR.Geolocation.X{ii}./1000,GPR.Geolocation.Y{ii}./1000,5,GPR.Snow.Depth{ii});colormap(yetBlack)
+figure();scatter(GPR.Geolocation.X{ff}./1000,GPR.Geolocation.Y{ff}./1000,5,GPR.Snow.Depth{ff});colormap(yetBlack)
 colorbar;
-caxis([quantile(GPR.Snow.Depth{ii},[0.05,0.95])])
+caxis([quantile(GPR.Snow.Depth{ff},[0.05,0.95])])
 daspect([1,1,1])
 grid on; grid minor;
 title('Depth (cm)')
@@ -355,9 +359,9 @@ ytickformat('%.2f')
         saveas(gcf,[GPR.MD.dataDir,'\',[projstr{end-1},titstr{1}],'depth.png'])
     end
 % SWE
-figure();scatter(GPR.Geolocation.X{ii}./1000,GPR.Geolocation.Y{ii}./1000,5,GPR.Snow.SWE{ii});colormap(yetBlack)
+figure();scatter(GPR.Geolocation.X{ff}./1000,GPR.Geolocation.Y{ff}./1000,5,GPR.Snow.SWE{ff});colormap(yetBlack)
 colorbar;
-caxis([quantile(GPR.Snow.SWE{ii},[0.05,0.95])])
+caxis([quantile(GPR.Snow.SWE{ff},[0.05,0.95])])
 daspect([1,1,1])
 grid on; grid minor;
 title('SWE (mm)')

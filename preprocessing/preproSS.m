@@ -1,15 +1,17 @@
 %% Preprocess Sensors&Software
-clear; close all; clc;
+clear; %close all; clc;
+addpath(genpath('C:\Users\RDCRLTGM\Desktop\git-repository\Multioffset'))
 %% Establish Directories and Files
 workingDirectory = pwd;
 % Enter Data Directory
-directories = {'D:\alicia\GPR Data - Share w T8'};
+directories = {['F:\500MHz_mo_2024\JIF_MO\TKG4_2024\raw2\airwave']};
 % Enter Line Numbers
-Lines = {[1]};
+Lines = {[6]};%{[1:7]};
 % Controls
 isWrite = 1; % Write netCDF file
 isFID = 1;   % Create Unique Trace ID for each file
 isKillChan = 0; % Remove Bad Channels
+isAirwave = 1; % Airwave File (no Georeferenceing)
 %% Preprocess
 for ff = 1:length(directories)
 dataDir = directories{ff};
@@ -149,13 +151,16 @@ end
 % Clear Undefined Loop Variables
 clear('mintrc','nsamp','ntrc','delta','latency')
 %% GeoReference
-velocityThreshold = 1;
+velocityThreshold = 0.5;
 calcVelocityHeading = 1;
 InterpolateTrhd = 1;
-dx = 0.1;
+dx = 1;
 rmvStaticTrc = 1;
-[MxTrhd{ii},MxData{ii}] = trhdGeoref(MxTrhd{ii},MxData{ii},GPS{1,ii},Geometry(ii),velocityThreshold,calcVelocityHeading,InterpolateTrhd,dx,rmvStaticTrc);%,trcnoBad);
-
+if isAirwave
+    [MxTrhd{ii},MxData{ii}] = trhdAirwave(MxTrhd{ii},MxData{ii},GPS{1,ii},Geometry(ii));
+else
+    [MxTrhd{ii},MxData{ii}] = trhdGeoref(MxTrhd{ii},MxData{ii},GPS{1,ii},Geometry(ii),velocityThreshold,calcVelocityHeading,InterpolateTrhd,dx,rmvStaticTrc);%,trcnoBad);
+end
 %% Create Unique File ID
 % For all files in Queue Create unique trace numbers, shot numbers, and/or
 % distances

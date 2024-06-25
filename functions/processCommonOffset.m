@@ -12,17 +12,19 @@ isBandPass = 1;      % Control Flag to Band-Pass Filter Data
 isFK = 0;            % Control Flag for FK Filter
 isSpiking = 0;       % Control Flag for Spiking Deconvolution
 isDemultiple = 0;    % Control Flag for Predictive Deconvolution
-isCalibration = 0;   % Control Flag for Air-wave Calibration using Priors
-isTimeZero = 1;      % Control Flag for Time-Zero Correction
+isCalibration = 1;   % Control Flag for Air-wave Calibration using Priors
+isTimeZero = 0;      % Control Flag for Time-Zero Correction
 isShearletFilt = 0;  % Control Flag for Shearlet Background Subtraction
 isSVDfilt = 0;       % Control Flag for SVD Component Subtraction Filter
-isSpatialMedFilt = 0;% Control Flag for Spatial Median Subtraction Filter
+isSpatialMedFilt = 1;% Control Flag for Spatial Median Subtraction Filter
 isExpGain = 0;       % Control Flag for Ramped Gain of Data
-isAGCgain = 0;       % Control Flag for AGC Gain of Data
-isSECgain = 1;       % Control Flag for SEC Gain of Data
-isStak = 0;          % Control Flag to Stack Data
-isKuwahara = 1;      % Control Flag for Kuwahara Filter
-isWiener = 0;        % Control Flag for Wiener Filter
+isAGCgain = 1;       % Control Flag for AGC Gain of Data
+isSECgain = 0;       % Control Flag for SEC Gain of Data
+isStak = 1;          % Control Flag to Stack Data
+isKuwahara = 0;      % Control Flag for Kuwahara Filter
+isWiener = 1;        % Control Flag for Wiener Filter
+isRMSamplitude = 0;  % Control Flag for RMS Amplitdues
+isMute = 0;          % Control Flag for Taper Mute
 
     %----------------------------------------------------------------------      
     % Convert Units
@@ -126,29 +128,34 @@ isWiener = 0;        % Control Flag for Wiener Filter
     %----------------------------------------------------------------------
     % Apriori Air-wave Calibration
     if isCalibration
-        if chanNo == 1
-            disp('Choose an Airwave Calibration File')
-            [file,path] = uigetfile;
-            currentDir = pwd;
-            cd('C:\Users\snowfield\Desktop\');
-            save('calibrationLocation.mat','file','path')
-            cd(currentDir);
-            calibration = load(fullfile(path,file));
-            tmpfieldname = fieldnames(calibration);
-            calibrationIx = getfield(calibration,tmpfieldname{1});
-        else
-            load('C:\Users\snowfield\Desktop\calibrationLocation.mat')
-            calibration = load(fullfile(path,file));
-            tmpfieldname = fieldnames(calibration);
-            calibrationIx = getfield(calibration,tmpfieldname{1});
-        end
-         % Parameters      
-        merR = 1;   %Rank of MER window [ns]
-        powMER = 3; % Power of MER operation
-       
-        % Function
-%         [Rad, TWT, t0] = airwaveCalibration( Rad, TWT, dt, merR, powMER, offset, chanNo, calibrationIx, path );
-        [Rad, TWT, t0] = airwaveCalibrationDux( Rad, TWT, dt, merR, powMER, offset, chanNo, calibrationIx, path );
+        % Airwave Arrival Times are Picked using pickAirwaveCalibration.m
+        % This could be better automated
+        path = 'E:\JIF24\JIF_MO';
+        file = 'AirwaveCalibration.mat';
+        [Rad, TWT, t0] = airwaveCalibrationJIF( Rad, TWT, dt, chanNo, offset, path, file);
+%         if chanNo == 1
+%             disp('Choose an Airwave Calibration File')
+%             [file,path] = uigetfile;
+%             currentDir = pwd;
+%             cd('C:\Users\snowfield\Desktop\');
+%             save('calibrationLocation.mat','file','path')
+%             cd(currentDir);
+%             calibration = load(fullfile(path,file));
+%             tmpfieldname = fieldnames(calibration);
+%             calibrationIx = getfield(calibration,tmpfieldname{1});
+%         else
+%             load('C:\Users\snowfield\Desktop\calibrationLocation.mat')
+%             calibration = load(fullfile(path,file));
+%             tmpfieldname = fieldnames(calibration);
+%             calibrationIx = getfield(calibration,tmpfieldname{1});
+%         end
+%          % Parameters      
+%         merR = 1;   %Rank of MER window [ns]
+%         powMER = 3; % Power of MER operation
+%        
+%         % Function
+% %         [Rad, TWT, t0] = airwaveCalibration( Rad, TWT, dt, merR, powMER, offset, chanNo, calibrationIx, path );
+%         [Rad, TWT, t0] = airwaveCalibrationDux( Rad, TWT, dt, merR, powMER, offset, chanNo, calibrationIx, path );
 
     end
     %----------------------------------------------------------------------
@@ -161,7 +168,7 @@ isWiener = 0;        % Control Flag for Wiener Filter
         
         
         % Parameters      
-        merR = 3;   %Rank of MER window [ns]
+        merR = 1;   %Rank of MER window [ns]
         powMER = 3; % Power of MER operation
        
         % Function
@@ -173,7 +180,7 @@ isWiener = 0;        % Control Flag for Wiener Filter
         toc
         display(' ')
         end
-    else
+    elseif ~isCalibration
         t0 = 0;
     end
     %----------------------------------------------------------------------
@@ -190,7 +197,7 @@ isWiener = 0;        % Control Flag for Wiener Filter
         display( 'Begin Singular Value Decomposition Filter')
         tic
         end
-        PCA = 0.65; % PCA percentage threshold
+        PCA = 0.9; % PCA percentage threshold
         Rad = SVDSfilter( Rad, PCA );
         
         if isDisplay
@@ -208,7 +215,7 @@ isWiener = 0;        % Control Flag for Wiener Filter
             display('Begin Coherent Noise Subtraction')
             tic
         end
-        R = 12.5;%.5;%12.5;
+        R = 500;
         [Rad] = backSubtract(Rad,x,R);
 %         [ Rad ] = movingMedianSubtraction( Rad, round(size(Rad,2).*.1) );
         
@@ -246,14 +253,6 @@ isWiener = 0;        % Control Flag for Wiener Filter
         display(' ')
         end
     end
-%     %----------------------------------------------------------------------
-%     % Spiking Deconvolution
-%     if isSpiking
-%         NF = 30;    % Operator Length
-%         mu = 1;     % Pre-whitening
-%         [~,Rad] = spiking(Rad,NF,mu);
-% 
-%     end
     
     %----------------------------------------------------------------------
     % Exponential Time Dependant Gain
@@ -265,24 +264,9 @@ isWiener = 0;        % Control Flag for Wiener Filter
         
         % Parameters
         tpow = 2; % Filter Order, 1 is Linear
-        rollOff = 2000;%100;%2.*t0./dt; %HHHV %250;% QP
         
         % Function
-        Rad = gain(Rad, tpow, rollOff );
-        % Top  and Bottom Mute
-% %         R = rollOff./nsamp;%0.25;
-%         tukeywindow = tukeywin(rollOff.*2,1);
-%         window = [tukeywindow;zeros(nsamp-2.*rollOff,1)];
-%         mute = window*ones(1,ntrcs);
-%         Rad = Rad.*mute;        
-% %                 % Top  and Bottom Mute
-% %         R = rollOff./nsamp;%0.25;
-% %         L = 101;
-% %         window = tukeywin(L,1); zed = zeros(nsamp,1); 
-% %         zed(rollOff-ceil(L/2)+1:rollOff-ceil(L/2)+L) = window;
-% %         window = zed;
-% %         mute = window*ones(1,ntrcs);
-% %         Rad = Rad.*mute;  
+        Rad = gain(Rad, tpow, rollOff ); 
         
         if isDisplay
         display( 'Power Gain Done')
@@ -300,7 +284,7 @@ isWiener = 0;        % Control Flag for Wiener Filter
         end
         
         % Parameters
-        R = ceil(nsamp/2);
+        R = 100;%ceil(nsamp/2);
         type = 2; % Trace Normalize: 0 = None, 1 = amplitude, 2 = RMSnorm
 
         Rad = AGCgain(Rad,R,type);
@@ -325,34 +309,31 @@ isWiener = 0;        % Control Flag for Wiener Filter
         %         tpow = 2; % Power Order, 1 is Linear
         %
         % Parameters
-        exppow = 0.0005; % Exponential Order
-        tpow = 1; % Power Order, 1 is Linear
+        exppow = -0.005; % Exponential Order
+        tpow = 2; % Power Order, 1 is Linear
         
         % Function
         Rad = SECgain(Rad, exppow, tpow);
     end
-    
+
     %----------------------------------------------------------------------
-    % Stacking Filter
-    if isStak
+    % RMS Amplitude
+    if isRMSamplitude
         if isDisplay
-        display( 'Begin Stack')
-        tic
+            display( 'Begin RMS Amplitude')
+            tic
         end
-        
         % Parameters
-        StakFiltR = 5; % Filter Rank
-        
+        L = 25;
         % Function
-        Rad = StakR(Rad,StakFiltR);
-        
+        [Rad] = rmsAmplitude(Rad,L);
         if isDisplay
-        display( 'Stacking Done')
-        toc
-        display(' ')
+            display( 'RMS Amplitude Done')
+            toc
+            display(' ')
         end
     end
-    
+
     %----------------------------------------------------------------------
     % Edge Preserving Horizon Filter    
     if isKuwahara
@@ -363,8 +344,48 @@ isWiener = 0;        % Control Flag for Wiener Filter
     % Wiener Filter
     if isWiener
 %         if chanNo == 1
-            Rad = wiener2(Rad,[3 3]);
+            Rad = wiener2(Rad,[10 50]);
 %         end
+    end
+    %----------------------------------------------------------------------
+    % Stacking Filter
+    if isStak
+        if isDisplay
+        display( 'Begin Stack')
+        tic
+        end
+        
+        % Parameters
+        StakFiltR = 10; % Filter Rank
+        
+        % Function
+        Rad = StakR(Rad,StakFiltR);
+        
+        if isDisplay
+        display( 'Stacking Done')
+        toc
+        display(' ')
+        end
+    end
+
+    %----------------------------------------------------------------------
+    % Top  and Bottom Mute
+    if isMute
+        % Parameters
+        rollOff = m - dt.*5;
+        R = rollOff./nsamp;%0.25;
+        tukeywindow = tukeywin(rollOff.*2,1);
+        window = [tukeywindow;zeros(nsamp-2.*rollOff,1)];
+        mute = window*ones(1,ntrcs);
+        Rad = Rad.*mute;
+        % Top  and Bottom Mute
+        R = rollOff./nsamp;%0.25;
+        L = 101;
+        window = tukeywin(L,1); zed = zeros(nsamp,1);
+        zed(rollOff-ceil(L/2)+1:rollOff-ceil(L/2)+L) = window;
+        window = zed;
+        mute = window*ones(1,ntrcs);
+        Rad = Rad.*mute;
     end
 
 

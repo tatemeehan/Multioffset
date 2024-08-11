@@ -2,16 +2,20 @@
 clear; %close all; clc;
 %% Establish Directories and Files
 % Data Directory
-directories = {'E:\JIF24\JIF_MO\C18 _2024\raw\Lineset'};
+directories = {'E:\JIF24\JIF_MO\MT_divide_2024\raw\queue'};
+% directories = {'D:\GPRdata\Wolverine051321\nc'};
 % Paths
 addpath(genpath('C:\Users\RDCRLTGM\Desktop\git-repository\Multioffset'))
 %% Processing WorkFlow Controls
 % Parallel Computing Enabled
 isParallel = 1;
+% BigMESS
+isBigMESS = 1;
 % Read Data
 isTrimTWT = 0;          % Truncate Recorded Data
 isReduceData = 0;       % Thin Traces
 isEditPicks = 0;        % Edit Picks
+isCMP = 1;              % CMP Gathers
 
 % Write SWE Data
 isWriteCSVhva = 0; % .csv output
@@ -22,7 +26,9 @@ isLoadMat = 0;
 
 % Load Color Maps
 yetBlack = load('yetBlack.txt');
-
+radarlove = csvread('radarlove.csv');
+RdYlBu = csvread('RdYlBu.csv');
+lateNite = csvread('LateNite.csv');
 %% Process Traveltime Data
 for hh = 1:size(directories,2)
     if hh == 1
@@ -56,9 +62,9 @@ for ff = 1:length(GPR.MD.Dir)
 if isParallel
     % Wake Parallel Computing
     if isempty(gcp('nocreate'))     
-        nWorkers = 4;
+        nWorkers = 8;
         p = parpool(nWorkers);
-    else nWorkers = 4;
+    else nWorkers = 8;
     end
 else
     nWorkers = 1;
@@ -73,6 +79,48 @@ GPR.MD.nWorkers = nWorkers;
 display('Processing GPR Data')
 rmNtrc = 0; padding = 0; isKillChan = 0; killArray = [];
 [GPR] = processSWEPR(GPR,isTrimTWT,isReduceData,rmNtrc,padding,isKillChan,killArray);
+%% Sort CMP Gathers
+if isBigMESS
+if isCMP
+    display('Gathering Common MidPoints')
+    [GPR] = gatherCMP(GPR);
+    isStackCMP = 1;
+    if isStackCMP
+        display('Stacking CMP Gathers')
+        [GPR] = stackCMP(GPR);
+    end
+end
+%% Coherence Velocity Analysis
+isCVA = 1;
+if isCVA & isCMP
+    tic
+    display('Computing Semblance')
+    [GPR] = VelocityCoherence(GPR);
+    toc
+end
+
+%% Velocity Modeling
+isVelocityModel = 1;
+if isVelocityModel
+    display('Velocity Modeling')
+    [GPR] = expVelocityModeling(GPR);
+end
+%% NMO Correction & Depth Imaging
+isNMOcorrection = 1;
+isNMOstacking = 1;
+isDepthConversion = 1;
+if isNMOcorrection
+    display('Normal Moveout Correction')
+    [GPR] = NormalMoveoutCorrection(GPR,isNMOstacking);
+    if isDepthConversion
+        display('Depth Conversion')
+        [GPR] = DepthConversion(GPR);
+    end
+end
+
+%% Make Figures
+[GPR] = makeFigures(GPR);
+else
 %% Automatic Travel-time Picking
 isAutoPickSurface = 0;
 if isAutoPickSurface
@@ -147,18 +195,20 @@ end
 display('Calculating Snow Properties')
 [GPR] = estimateSnow(GPR,isOnSurface);
 end
+end
 %% Save GPR.mat
 if isSaveMat
     display('Writing .mat File')
 
     matname = strsplit(GPR.MD.Dir(ff).folder,'\');
-    linename = strsplit(GPR.MD.fileNames,'.');
-    linename = regexp(linename{1},'\d*','Match');
-    matname = [matname{length(matname)-1},'-',linename{1}];
+%     linename = strsplit(GPR.MD.fileNames,'.');
+%     linename = regexp(linename{1},'\d*','Match');
+%     matname = [matname{length(matname)-1},'-',linename{1}];
 
     cd(GPR.MD.dataDir)
-    save([matname,'.mat'],'GPR','-v7.3');
+    save([matname{4},'.mat'],'GPR','-v7.3');
     cd(GPR.MD.workDir)
+    display('Wrote .mat File')
 end
 %% Write .csv
 % Snow Properties from HVA

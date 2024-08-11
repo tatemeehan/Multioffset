@@ -7,7 +7,7 @@ function [ Rad, TWT, t0 ] = processCommonOffset( Rad, f0, dt, TWT, offset, x, dx
 % Filter Parameters are Established within Function
 isDisplay = 0;       % Control Text Display to Screen
 isNormalize = 0;     % Control Flag to Normalize Data
-isMedFilt = 1;       % Control Flag for Median Subtraction Filter
+isMedFilt = 0;       % Control Flag for Median Subtraction Filter
 isBandPass = 1;      % Control Flag to Band-Pass Filter Data
 isFK = 0;            % Control Flag for FK Filter
 isSpiking = 0;       % Control Flag for Spiking Deconvolution
@@ -20,7 +20,7 @@ isSpatialMedFilt = 1;% Control Flag for Spatial Median Subtraction Filter
 isExpGain = 0;       % Control Flag for Ramped Gain of Data
 isAGCgain = 1;       % Control Flag for AGC Gain of Data
 isSECgain = 0;       % Control Flag for SEC Gain of Data
-isStak = 1;          % Control Flag to Stack Data
+isStak = 0;          % Control Flag to Stack Data
 isKuwahara = 0;      % Control Flag for Kuwahara Filter
 isWiener = 1;        % Control Flag for Wiener Filter
 isRMSamplitude = 0;  % Control Flag for RMS Amplitdues
@@ -112,7 +112,7 @@ isMute = 0;          % Control Flag for Taper Mute
     % Spiking Deconvolution
     if isSpiking
         NF = 200;    % Operator Length
-        mu = 1;     % Pre-whitening
+        mu = 1e6;     % Pre-whitening
         [~,Rad] = spiking(Rad,NF,mu);
 
     end
@@ -216,7 +216,8 @@ isMute = 0;          % Control Flag for Taper Mute
             tic
         end
         R = 500;
-        [Rad] = backSubtract(Rad,x,R);
+                [Rad] = backSubtractBigMess(Rad,x,R);
+%         [Rad] = backSubtract(Rad,x,R);
 %         [ Rad ] = movingMedianSubtraction( Rad, round(size(Rad,2).*.1) );
         
         if isDisplay
@@ -343,9 +344,9 @@ isMute = 0;          % Control Flag for Taper Mute
     %----------------------------------------------------------------------
     % Wiener Filter
     if isWiener
-%         if chanNo == 1
-            Rad = wiener2(Rad,[10 50]);
-%         end
+        % 5 ns by 50 m Filter Window
+        nr = 5./dt; nc = 50./dx;
+        Rad = wiener2(Rad,[nr nc]);
     end
     %----------------------------------------------------------------------
     % Stacking Filter

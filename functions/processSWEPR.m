@@ -70,12 +70,13 @@ for ii = 1 : GPR.MD.nFiles
     TimeAxis = cell(GPR.Geometry.nChan{ii},1,1); traceIx = cell(GPR.Geometry.nChan{ii},GPR.MD.nFiles);
     
     for jj = 1:GPR.Geometry.nChan{ii}
+%     parfor (jj = 1:GPR.Geometry.nChan{ii},GPR.MD.nWorkers)
         % DeMux Sequential Data
         % GPS DeadReckoning completed in preProcessing
         [Radar{jj,ii},~,traceIx{jj,ii},~] = deMuxNSIDC(GPR.D.MxRadar{ii},GPR.D.trhd{ii},GPR.Geometry.Chan{ii}(jj));
     end
         
-    % parfor (jj =  1:GPR.Geometry.nChan{ii}, nWorkers)
+%     parfor (jj =  1:GPR.Geometry.nChan{ii}, GPR.MD.nWorkers)
     for jj = 1:GPR.Geometry.nChan{ii}
         % Reduce Data Volume
         if isReduceData

@@ -82,8 +82,9 @@ for ii = 1 : GPR.MD.nFiles
     Z = [Z,GPR.Geolocation.Z{ii}];
 end
 % Regress LWC against Elevation
-w = ((0.005-0.03)./(max(Z)-min(Z))).*Z;
-LWC = w+(0.005-min(w)).*ones(size(D));
+minLWC = 0.005; maxLWC = 0.03;
+w = ((minLWC-maxLWC)./(max(Z)-min(Z))).*Z;
+LWC = w+(minLWC-min(w)).*ones(size(D));
 iceIx = find(D>.650);
 LWC(iceIx) = 0;
 % Convolution Smoothing

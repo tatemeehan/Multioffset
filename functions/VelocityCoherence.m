@@ -40,7 +40,7 @@ elseif nargin < 7
     stretch = 1;
 end
 
-for ii = 1 %: GPR.MD.nFiles
+for ii = 1 : GPR.MD.nFiles
     dt = GPR.D.dt{ii};
     nt = size(GPR.D.CMP{ii}{1},1);
     offset = GPR.Geometry.offset{ii};

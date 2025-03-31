@@ -2,7 +2,7 @@
 clear; %close all; clc;
 %% Establish Directories and Files
 % Data Directory
-directories = {'E:\JIF24\JIF_MO\MT_divide_2024\raw\queue'};
+directories = {'E:\JIF24\JIF_MO\MT_divide2_2024\raw\queue'};
 % directories = {'D:\GPRdata\Wolverine051321\nc'};
 % Paths
 addpath(genpath('C:\Users\RDCRLTGM\Desktop\git-repository\Multioffset'))
@@ -199,14 +199,15 @@ end
 %% Save GPR.mat
 if isSaveMat
     display('Writing .mat File')
-
+    [GPRlite] = compactGPRexport(GPR)
     matname = strsplit(GPR.MD.Dir(ff).folder,'\');
 %     linename = strsplit(GPR.MD.fileNames,'.');
 %     linename = regexp(linename{1},'\d*','Match');
 %     matname = [matname{length(matname)-1},'-',linename{1}];
 
     cd(GPR.MD.dataDir)
-    save([matname{4},'.mat'],'GPR','-v7.3');
+%     save([matname{4},'.mat'],'GPR','-v7.3');
+    save([matname{4},'_lite.mat'],'GPRlite','-v7.3');
     cd(GPR.MD.workDir)
     display('Wrote .mat File')
 end

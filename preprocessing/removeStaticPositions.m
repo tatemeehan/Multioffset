@@ -1,4 +1,4 @@
-function [removeTraces] = removeStaticPositions(trhd,v,velocity)
+function [removeTraces] = removeStaticPositions(trhd,v,velocity,nChan)
 % removeStaticPositions.m uses GPS velocity stored in trhd and a velocity
 % threshold v to determine the indicies of stationary positions. 
 % trhd vars used
@@ -7,12 +7,15 @@ function [removeTraces] = removeStaticPositions(trhd,v,velocity)
 
 if nargin < 3
     velocity = trhd(18,:);
+    nChan = length(unique(trhd(23,:)));
+end
+if nargin < 4
+    nChan = length(unique(trhd(23,:)));
 end
 multiplexNtrcs = length(trhd);
-nChan = length(unique(trhd(23,:)));
-if all(trhd(23,:))
+if nChan > 1
     % multichannel
-binIx = find(trhd(23,:) == 1);
+    binIx = find(trhd(23,:) == 1);
 else
     % single channel
     binIx = 1:multiplexNtrcs;

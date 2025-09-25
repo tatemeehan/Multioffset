@@ -4,9 +4,9 @@ addpath(genpath('C:\Users\RDCRLTGM\Desktop\git-repository\Multioffset'))
 %% Establish Directories and Files
 workingDirectory = pwd;
 % Enter Data Directory
-directories = {['F:\500MHz_mo_2024\JIF_MO\TKG4_2024\raw2\airwave']};
+directories = {['C:\Users\RDCRLTGM\Downloads\JIF25\matthes-taku\matthes-taku']};
 % Enter Line Numbers
-Lines = {[6]};%{[1:7]};
+Lines = {[1]};%{[1:7]};
 % Controls
 isWrite = 1; % Write netCDF file
 isFID = 1;   % Create Unique Trace ID for each file

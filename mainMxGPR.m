@@ -4,6 +4,7 @@ clear; %close all; clc;
 % Data Directory
 directories = {'E:\JIF24\JIF_MO\MT_divide2_2024\raw\queue'};
 % directories = {'D:\GPRdata\Wolverine051321\nc'};
+% directories = {'E:\Keegan\NM-02-25-24\queue'};
 % Paths
 addpath(genpath('C:\Users\RDCRLTGM\Desktop\git-repository\Multioffset'))
 %% Processing WorkFlow Controls
@@ -12,7 +13,7 @@ isParallel = 1;
 % BigMESS
 isBigMESS = 1;
 % Read Data
-isTrimTWT = 0;          % Truncate Recorded Data
+isTrimTWT = 1;          % Truncate Recorded Data
 isReduceData = 0;       % Thin Traces
 isEditPicks = 0;        % Edit Picks
 isCMP = 1;              % CMP Gathers
@@ -84,7 +85,7 @@ if isBigMESS
 if isCMP
     display('Gathering Common MidPoints')
     [GPR] = gatherCMP(GPR);
-    isStackCMP = 1;
+    isStackCMP = 0;
     if isStackCMP
         display('Stacking CMP Gathers')
         [GPR] = stackCMP(GPR);
@@ -117,7 +118,22 @@ if isNMOcorrection
         [GPR] = DepthConversion(GPR);
     end
 end
-
+%% Frequency-Time Analysis
+isQstar = 1;
+if isQstar
+    tic
+    display('Snow & Firn Density & LWC Estimation')
+    % Q* Inversion
+        f0dir = 'E:\JIF24\JIF_MO\';
+        f0fn = 'AirwaveFrequency.mat';
+        load([f0dir,f0fn]);
+        f0 = median((cat(1,AirwaveFrequency.fmax{:})));
+        fmethod = 'avg';
+        qmethod = 'Bradford07';
+        % Snow/Firn Liquid Water Content Estimation
+        [GPR] = qStarLWC(GPR,f0,fmethod,qmethod);
+    toc
+end
 %% Make Figures
 [GPR] = makeFigures(GPR);
 else

@@ -54,7 +54,7 @@ for ii = 1 : GPR.MD.nFiles
     
     % Trim Time Window
     if isTrimTWT
-        endSamp = 350-27; %200HHHV The new end of the columns
+        endSamp = 125; %200HHHV The new end of the columns
         reSample = endSamp + padding;   % Number of Wanted Samples
         GPR.D.MxRadar{ii} = GPR.D.MxRadar{ii}(1:reSample,:);
         TWT = GPR.D.TimeAxis{ii}; TWT = TWT(1:reSample);

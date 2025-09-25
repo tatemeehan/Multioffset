@@ -14,6 +14,8 @@ function [GPR] = VelocityCoherence(GPR,vmin,vmax,nv,R,L,stretch)
 if nargin<2
     vmin = 0.15;
     vmax = 0.25;
+    % vmin = 0.17;
+    % vmax = 0.27;
     nv = 100;
     R = 5;
     L = 5;
@@ -39,6 +41,7 @@ elseif nargin < 6
 elseif nargin < 7
     stretch = 1;
 end
+R = 1; L = 2;
 
 for ii = 1 : GPR.MD.nFiles
     dt = GPR.D.dt{ii};
@@ -60,11 +63,13 @@ for ii = 1 : GPR.MD.nFiles
         % for jj = 1:length(CMP)
         tmpCMP = single(CMP{jj});
 %         tmpCMP = single(AGCgain(tmpCMP,150,2));
-        tmpCMP = rmsAmplitude(tmpCMP,50);
+        % tmpCMP = rmsAmplitude(tmpCMP,50);
+                tmpCMP = rmsAmplitude(tmpCMP,5);
+
 %         [S{jj},~,~] = lmoVelocityCoherence(tmpCMP,dt,offset,vmin,vmax,nv,R,L,1);
         [C{jj},~,~] = nmoVelocityCoherence(tmpCMP,dt,offset,vmin,vmax,nv,R,L,stretch);
         % Gain Coherence of Early Reflections with Reduced Data Fold
-        C{jj}(1:gix,:) = C{jj}(1:gix,:).*g;
+        % C{jj}(1:gix,:) = C{jj}(1:gix,:).*g;
         % Normalize
         C{jj} = C{jj}./max(C{jj}(:));
     end

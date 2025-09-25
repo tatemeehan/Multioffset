@@ -29,14 +29,54 @@ for ii = 1:GPR.MD.nFiles
         [RadarNMO{jj},~,~,~,~] = ...
             commonOffsetNMO(Radar{jj},dt,f0,offsetArray(jj),dumX,dumT,dumV,Stretch,isInterpolate);
     end
+    bottomIx = [1225,1235,1205,1185,1150,1135,1105,1080,1230,1210,1175,1145,1310,1285,1245,1210];
+        % Apply Bottom Mute
+        for kk = 1:numel(RadarNMO)
+            data = RadarNMO{kk};
+            [nt, nx] = size(data);
+            cutoff = bottomIx((kk));  % scalar or 1×nx if picked per trace
+
+            for jj = 1:nx
+                fade_len = 50;
+                ix_cut = min(cutoff-fade_len, nt);
+                
+                if ix_cut + fade_len <= nt
+                    taper = tukeywin(2*fade_len, 1);  % cosine fade
+                    ramp = taper(fade_len+1:end);     % fade out
+                    data(ix_cut+1:ix_cut+fade_len, jj) = ...
+                        data(ix_cut+1:ix_cut+fade_len, jj) .* ramp;
+                    data(ix_cut+fade_len+1:end, jj) = 0;
+                else
+                    data(ix_cut+1:end, jj) = 0;
+                end
+            end
+            RadarNMO{(kk)} = data;
+        end
     GPR.D.RadarNMO{ii} = RadarNMO;
+
     if isNMOstacking
         nearChans = [1:3];
-        nearStack = mean(cat(3,RadarNMO{nearChans}),3);
         farChans = [13:16];
+        stackChans = [nearChans,farChans];
+        % Subtract Mean
+        nearStack = mean(cat(3,RadarNMO{nearChans}),3);
+        meanNearStack = mean(nearStack(:));
+        nearStack = nearStack - meanNearStack;
         farStack = mean(cat(3,RadarNMO{farChans}),3);
-        % Weighted Sum of Near and Far Stack
-        twtOverlap = 225; % [ns]
+        meanFarStack = mean(farStack(:));
+        farStack = farStack - meanFarStack;
+        % % RMS Amplitude
+        % % RMS Win
+        % ns = 2./dt; % 2 ns RMS Window;
+        % farStack= rmsAmplitude(farStack,ns);
+        % nearStack= rmsAmplitude(nearStack,ns);
+
+        % % Weighted Sum of Near and Far Stack
+        % twtOverlap = 225; % [ns]
+        % [blendedStack, ~, ~] = blendRadargrams(nearStack, farStack, twtOverlap, dt);
+        % % blendedStack = removeBlendSeamBias(blendedStack, twtOverlap, dt, 10);
+        % % blendedStack = blendRadargrams_fft(nearStack, farStack,0.25);
+        % GPR.D.RadarStack{ii} = blendedStack; % Windowed
         %             % Correct Mean Bias
         % %             nearMean = mean(mean(nearStack(twtOverlap./dt - 50:twtOverlap./dt+50,:)));
         % %             farMean = mean(mean(farStack(twtOverlap./dt - 50:twtOverlap./dt+50,:)));
@@ -46,36 +86,49 @@ for ii = 1:GPR.MD.nFiles
         % %             farMean = mean(farStack(:));
         %             cormean = movmean(farMean-nearMean,251);
         %             farStack = farStack-cormean;
-        % Design Blend Window
-        win = triang(200);
-        nearW = zeros(length(dumT),1);
-        nearWin = [ones(twtOverlap./dt,1);win(101:end)];
-        nearW(1:numel(nearWin)) = nearWin;
-        farW = ones(length(dumT),1);
-        farWin = [zeros(twtOverlap./dt,1);win(1:100)];
-        farW(1:numel(farWin)) = farWin;
-        % Stack Near and Far Offsets
-        nearStack = nearStack.*nearW;
-        farStack = farStack.*farW;
-        stack = zeros(size(nearStack,1),size(nearStack,2),2);
-        stack(:,:,1) = nearStack; stack(:,:,2) = farStack;
+        % % Design Blend Window
+        % win = triang(200);
+        % nearW = zeros(length(dumT),1);
+        % nearWin = [ones(twtOverlap./dt,1);win(101:end)];
+        % nearW(1:numel(nearWin)) = nearWin;
+        % farW = ones(length(dumT),1);
+        % farWin = [zeros(twtOverlap./dt,1);win(1:100)];
+        % farW(1:numel(farWin)) = farWin;
+        % % Stack Near and Far Offsets
+        % nearStack = nearStack.*nearW;
+        % farStack = farStack.*farW;
+        % stack = zeros(size(nearStack,1),size(nearStack,2),2);
+        % stack(:,:,1) = nearStack; stack(:,:,2) = farStack;
 
         % Offset Stacking
-        GPR.D.RadarStack{ii} = sum(stack,3); % Windowed
+        % GPR.D.RadarStack{ii} = sum(stack,3); % Windowed
         %            GPR.D.RadarStack{ii} = mean(cat(3,RadarNMO{stackChans}),3);
 
         % Post-Stack Processing
 
         % Top Mute
-        ns = 40./dt; % 40 ns mute tapered window
+        ns = 20./dt; % 40 ns mute tapered window
         win = hamming(2.*ns+1);
         win = [win(1:ns);ones(length(dumT)-(ns),1)];
-        GPR.D.RadarStack{ii} = GPR.D.RadarStack{ii}.*win;
+        % GPR.D.RadarStack{ii} = GPR.D.RadarStack{ii}.*win;
+        nearStack = nearStack.*win;
 
-        % RMS Amplitude
+
+        % % RMS Amplitude
         % RMS Win
         ns = 2./dt; % 2 ns RMS Window;
-        GPR.D.RadarStack{ii} = rmsAmplitude(GPR.D.RadarStack{ii},ns);
+        % GPR.D.RadarStack{ii} = rmsAmplitude(GPR.D.RadarStack{ii},ns);
+        nearStack = rmsAmplitude(nearStack,ns);
+        farStack = rmsAmplitude(farStack,ns);
+
+
+
+                % Weighted Sum of Near and Far Stack
+        twtOverlap = 225; % [ns]
+        [blendedStack, ~, ~] = blendRadargrams(nearStack, farStack, twtOverlap, dt);
+        % blendedStack = removeBlendSeamBias(blendedStack, twtOverlap, dt, 10);
+        % blendedStack = blendRadargrams_fft(nearStack, farStack,0.25);
+        GPR.D.RadarStack{ii} = blendedStack; % Windowed
 
         % Wiener Filter
         %             GPR.D.RadarStack{ii} = wiener2(GPR.D.RadarStack{ii},[3,3]);

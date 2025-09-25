@@ -8,13 +8,16 @@ function [GPR] = expVelocityModeling(GPR)
 warning('off','all');
 parfevalOnAll(@warning,0,'off','all');
 vOut = [];vOutIx = [];
-for ii = 1 : GPR.MD.nFiles
+for ii = 1% : GPR.MD.nFiles
     % Extract Variables
     tau = GPR.D.stackingTimeAxis{ii}; % Stacking Time Axis
     v = GPR.D.velocityAxis{ii};       % Velocity Axis
-    C = GPR.D.velocityCoherence{ii};  % Velocity Spectra
-    Cdistance = GPR.Geolocation.cmpDistance{ii}; % MidPoint Distance
-    Z = GPR.Geolocation.cmpZ{ii};
+    % C = GPR.D.velocityCoherence{ii};  % Velocity Spectra
+    C = cat(2,GPR.D.velocityCoherence{:});  % Velocity Spectra
+    % Cdistance = GPR.Geolocation.cmpDistance{ii}; % MidPoint Distance
+    Cdistance = cat(2,GPR.Geolocation.cmpDistance{:}); % MidPoint Distance
+    % Z = GPR.Geolocation.cmpZ{ii};
+    Z = cat(2,GPR.Geolocation.cmpZ{:});
     dt = GPR.D.dt{ii};
     timeAxis = GPR.D.TimeAxis{ii};
     R = round(length(timeAxis)./length(tau)); % Coherence Comp. TWT Interval
@@ -111,6 +114,8 @@ for ii = 1 : GPR.MD.nFiles
 %     convdata = [padl,initBeta',padr];
 %     initBeta = conv(convdata,kernel'./sum(kernel)','valid')';
 %     %     initBeta = movmean(initBeta,250);
+
+% Elevation Prescribed Model Initilization
     tmpFun = ((0.18-.15)./(1850-1100)).*Z;
     tmpFun0 = 0.15-0.0440;%min(tmpFun);
     initBeta = tmpFun+tmpFun0;
@@ -137,7 +142,7 @@ for ii = 1 : GPR.MD.nFiles
         end
         %             meanDistW(ff) = mean(distW);
         %             end
-        radius = 0.01;
+        radius = 0.0125;
         rmvIx = find(distW > radius);
         % Remove Outlier Coherence Bubbles
         Cix(rmvIx) = [];
@@ -192,10 +197,11 @@ for ii = 1 : GPR.MD.nFiles
         % [vInt] = intervalVelocity(vRMS,Zed(:,jj));
         % Time
         [vInt] = intervalVelocity(vRMS,tau(:));
-        % Fib this inverval such that it is bounded
+        % Bound the velocity this inverval
         % vInterval = rescale(vInterval,0.17,vRMS(1));
-        fibIx = find(vInt<0.169,1);
-        vInt(fibIx:end)=0.169;
+        vmin = 0.3./sqrt(3.5); % Tinga Bruggeman real permittivity for 917 @ 0%
+        bndIx = find(vInt<vmin,1);
+        vInt(bndIx:end)=vmin;
         vTrue(:,jj) = vInt;
         % Re-stack Stacking Velocity
         % Time
@@ -233,19 +239,20 @@ vOutIx = cumsum(vOutIx);
 %     nc = numel(Cdistance);
 %     nr = numel(tau);
 [nr,nc] = size(vOut);
-% Convolution Smoothing
-R=100;
-kernel = hamming(2.*R +1);
-% Pad Data with End Traces prior to Convolution
-padl = ones(nr,R).*vOut(:,1);
-padr = ones(nr,R).*mean(vOut(:,nc-2.*R+1:nc),2);
-convdata = [padl,vOut,padr];
-% Row Wise Convolution
-padu = ones(R,nc+2.*R).*(convdata(1,:));
-padd = ones(R,nc+2.*R).*convdata(nr,:);
-convdata = [padu;convdata;padd];
-Vsmooth = conv2(kernel./sum(kernel),kernel./sum(kernel),convdata(:,:),'valid');
-clear('convdata');
+% % Convolution Smoothing
+% R=100;
+% kernel = hamming(2.*R +1);
+% % Pad Data with End Traces prior to Convolution
+% padl = ones(nr,R).*vOut(:,1);
+% padr = ones(nr,R).*mean(vOut(:,nc-2.*R+1:nc),2);
+% convdata = [padl,vOut,padr];
+% % Row Wise Convolution
+% padu = ones(R,nc+2.*R).*(convdata(1,:));
+% padd = ones(R,nc+2.*R).*convdata(nr,:);
+% convdata = [padu;convdata;padd];
+% Vsmooth = conv2(kernel./sum(kernel),kernel./sum(kernel),convdata(:,:),'valid');
+Vsmooth = vOut;
+% clear('convdata');
 %     % Convolution Smoothing
 %     R=100;
 %     kernel = hamming(2.*R +1);
@@ -261,6 +268,12 @@ clear('convdata');
 %     clear('convdata');
 zzTop = [];zzTopIx = [];
 for ii = 1 : GPR.MD.nFiles
+    if ii == 1
+        vOutIx(ii) = size(GPR.D.CMP{ii},2);
+    else
+        endIx = vOutIx(ii-1);
+        vOutIx(ii) = size(GPR.D.CMP{ii},2)+endIx;
+    end
     tau = GPR.D.stackingTimeAxis{ii}; % Stacking Time Axis
     Cdistance = GPR.Geolocation.cmpDistance{ii}; % MidPoint Distance
     % Interval Velocity
@@ -310,6 +323,8 @@ for ii = 1 : GPR.MD.nFiles
     % Store Output in GPR Structure
     GPR.D.stackingVelocity{ii} = Vstack;
     GPR.D.intervalVelocity{ii} = Vtrue;
+    GPR.D.stackingPermittivity{ii} = (0.3./GPR.D.stackingVelocity{ii}).^2;
+    GPR.D.intervalPermittivity{ii} = (0.3./GPR.D.intervalVelocity{ii}).^2;
     GPR.D.Depth{ii} = Zstack;
     GPR.D.DepthAxis{ii} = DepthAxis;
     GPR.D.Density{ii} = FirnDensity;

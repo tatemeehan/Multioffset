@@ -49,6 +49,15 @@ m = size(rawGPS,1);
 for kk = 1:m
     tmp1 = strsplit(rawGPS{kk},'"');
     tmp2 = strsplit(tmp1{2},',');
+    nchar = numel(tmp2{1});
+    if nchar<6 | nchar>6
+        addnchar = 6-nchar;
+        if addnchar>0
+            tmp2{1} = [tmp2{1},'X':char('X'+addnchar-1)];
+        elseif addnchar < 0
+            tmp2{1} = tmp2{1}(1:6);
+        end
+    end
     NMEA(kk,:) = tmp2{1};
     if any(strcmp(NMEA(kk,:),["$GPGGA","$GPVTG","$GPZDA","$GPRMC","$GPGSA"])) && ~exist("NMEA1","var")
         NMEA1 = NMEA(kk,:);
@@ -192,6 +201,8 @@ for kk = 1:m
     % Date and Time
     if strcmp(gpsCell{5},'$GPZDA')
         isZDA = 1;
+        isGPS = ~isempty(gpsCell{6});
+        if isGPS
         % Time of Day
         t = gpsCell{6};
         H = str2double(t(1:2));
@@ -202,13 +213,17 @@ for kk = 1:m
         y = str2double(gpsCell{9});
         dt = datetime([y mnth d H M S]);
         unixTime(iter) = posixtime(dt); % Convert to unixTime
+        if iter == 1
+            s1 = H.*3600+M.*60+S;
+        end
         clear('t','H','M','S','d','mnth','y','dt');
+        end
     end
     % GPRMC
     % True Heading, Speed km/h, Time & Date
     if strcmp(gpsCell{5},'$GPRMC')
         isRMC = 1;
-        isGPS = ~strcmp(gpsCell{6},'V');
+        isGPS = ~strcmp(gpsCell{7},'V');
         if ~isGGA % Get Lon, Lat (Elevation Unavailable)
             if isGPS
                 % Longitude

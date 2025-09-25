@@ -6,9 +6,9 @@ addpath(genpath('C:\Users\RDCRLTGM\Desktop\git-repository\Multioffset'))
 workingDirectory = pwd;
 % Enter Data Directory
 % directories = {'F:\500MHz_mo_2024\JIF_MO\MT_divide2_2024\raw\Lineset'};
-directories = {['F:\500MHz_mo_2024\JIF_MO\C18 _2024\raw\airwave'],['F:\500MHz_mo_2024\JIF_MO\DEM1_2024\raw\airwave']...
-    ['F:\500MHz_mo_2024\JIF_MO\MT_divide_2024\raw\airwave'],['F:\500MHz_mo_2024\JIF_MO\MT_divide2_2024\raw\airwave']...
-    ['F:\500MHz_mo_2024\JIF_MO\NWBN_2024\raw\airwave'],['F:\500MHz_mo_2024\JIF_MO\NWBN2_2024\raw\airwave']};
+directories = {['E:\JIF24\JIF_MO\C18 _2024\raw\airwave'],['E:\JIF24\JIF_MO\DEM1_2024\raw\airwave']...
+    ['E:\JIF24\JIF_MO\MT_divide_2024\raw\airwave'],['E:\JIF24\JIF_MO\MT_divide2_2024\raw\airwave']...
+    ['E:\JIF24\JIF_MO\NWBN_2024\raw\airwave'],['E:\JIF24\JIF_MO\NWBN2_2024\raw\airwave']};
 % Enter Line Numbers
 Lines = {[1,3],[1,10],[1],[2],[1],[1]};
 nChan = 16;
@@ -96,6 +96,6 @@ channel = chans(jj);
     AirwaveCalibration.laymanDecon{iter} = laymanDecon;
     toc
     iter = iter+1;
-    save("F:\500MHz_mo_2024\JIF_MO\AirwaveCalibration.mat","AirwaveCalibration")
+    % save("F:\500MHz_mo_2024\JIF_MO\AirwaveCalibration.mat","AirwaveCalibration")
 end
 end

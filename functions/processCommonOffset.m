@@ -12,17 +12,17 @@ isBandPass = 1;      % Control Flag to Band-Pass Filter Data
 isFK = 0;            % Control Flag for FK Filter
 isSpiking = 0;       % Control Flag for Spiking Deconvolution
 isDemultiple = 0;    % Control Flag for Predictive Deconvolution
-isCalibration = 1;   % Control Flag for Air-wave Calibration using Priors
+isCalibration = 0;   % Control Flag for Air-wave Calibration using Priors
 isTimeZero = 0;      % Control Flag for Time-Zero Correction
 isShearletFilt = 0;  % Control Flag for Shearlet Background Subtraction
 isSVDfilt = 0;       % Control Flag for SVD Component Subtraction Filter
-isSpatialMedFilt = 1;% Control Flag for Spatial Median Subtraction Filter
+isSpatialMedFilt = 0;% Control Flag for Spatial Median Subtraction Filter
 isExpGain = 0;       % Control Flag for Ramped Gain of Data
 isAGCgain = 1;       % Control Flag for AGC Gain of Data
 isSECgain = 0;       % Control Flag for SEC Gain of Data
-isStak = 0;          % Control Flag to Stack Data
+isStak = 1;          % Control Flag to Stack Data
 isKuwahara = 0;      % Control Flag for Kuwahara Filter
-isWiener = 1;        % Control Flag for Wiener Filter
+isWiener = 0;        % Control Flag for Wiener Filter
 isRMSamplitude = 0;  % Control Flag for RMS Amplitdues
 isMute = 0;          % Control Flag for Taper Mute
 
@@ -345,7 +345,7 @@ isMute = 0;          % Control Flag for Taper Mute
     % Wiener Filter
     if isWiener
         % 5 ns by 50 m Filter Window
-        nr = 5./dt; nc = 50./dx;
+        nr = round(5./dt); nc = round(50./dx);
         Rad = wiener2(Rad,[nr nc]);
     end
     %----------------------------------------------------------------------
